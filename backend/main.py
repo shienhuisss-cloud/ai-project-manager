@@ -1,15 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-AI 项目需求管家 —— 后端入口
+AI 项目需求管家后端。
 
-主要能力：
-- 身份认证：注册/登录/登出，PBKDF2 密码哈希 + 服务端会话令牌。
-- 项目级访问控制：每个项目接口校验 owner / membership，不依赖前端隐藏按钮。
-- 需求提取与变更比较：调用真实模型 + 结构化校验 + 证据归属检查。
-- 版本管理：确认后生成不可变快照，事务 + 请求幂等。
-- 输入上限、请求限额、Markdown 导出、数据备份。
-
-部署说明见 README 与 DEPLOY.md。
+FastAPI 应用，包含用户认证、项目权限、需求提取与变更比较、版本管理。
+数据存 SQLite。模型调用见 llm.py，校验见 validators.py。
 """
 
 import json
@@ -31,9 +25,7 @@ from . import llm
 from . import prompts
 from . import validators
 
-# ---------------------------------------------------------------------------
 # 配置
-# ---------------------------------------------------------------------------
 
 DB_PATH = os.environ.get("DB_PATH", os.path.join(os.path.dirname(__file__), "..", "app.db"))
 
@@ -165,9 +157,7 @@ def _init_schema(conn: sqlite3.Connection):
     conn.commit()
 
 
-# ---------------------------------------------------------------------------
 # 工具
-# ---------------------------------------------------------------------------
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -195,9 +185,7 @@ def _jload_qs(s):
     return _jload(s, [])
 
 
-# ---------------------------------------------------------------------------
 # 内置示例材料与演示结果（用于未配置模型时体验完整流程）
-# ---------------------------------------------------------------------------
 
 DEMO_SOURCE_001 = (
     "客户：做一个官网，展示我们的产品，让客户能联系我们。\n"
@@ -317,9 +305,7 @@ def build_demo_comparison(baseline_snapshot: dict) -> list:
     return changes
 
 
-# ---------------------------------------------------------------------------
 # 数据访问辅助
-# ---------------------------------------------------------------------------
 
 def _get_project_row(pid: str) -> sqlite3.Row:
     row = _db().execute("SELECT * FROM project WHERE id = ?", (pid,)).fetchone()
@@ -328,9 +314,7 @@ def _get_project_row(pid: str) -> sqlite3.Row:
     return row
 
 
-# ---------------------------------------------------------------------------
 # 认证与权限
-# ---------------------------------------------------------------------------
 
 def _get_current_user(authorization: str | None) -> dict:
     """从 Authorization: Bearer <token> 解析当前用户。未登录/过期返回 401。"""
@@ -369,9 +353,7 @@ def _is_project_owner(pid: str, user: dict) -> bool:
     return _get_project_row(pid)["owner_id"] == user["id"]
 
 
-# ---------------------------------------------------------------------------
 # 请求限额（分析类接口）
-# ---------------------------------------------------------------------------
 
 def _rate_limit(user_id: str) -> None:
     """按用户限流：60 秒内分析类请求不超过 RATE_LIMIT_MAX 次。"""
@@ -476,9 +458,7 @@ def _touch_project(pid: str):
     _db().execute("UPDATE project SET updated_at = ? WHERE id = ?", (_now(), pid))
 
 
-# ---------------------------------------------------------------------------
 # 版本快照工具
-# ---------------------------------------------------------------------------
 
 def _norm_req(r: dict) -> dict:
     return {
@@ -517,9 +497,7 @@ def _assign_requirement_ids(conn, pid: str, requirements: list) -> None:
     conn.execute("UPDATE project SET requirement_seq = ? WHERE id = ?", (seq, pid))
 
 
-# ---------------------------------------------------------------------------
 # 应用与请求模型
-# ---------------------------------------------------------------------------
 
 app = FastAPI(title="AI 项目需求管家")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
@@ -609,9 +587,7 @@ def _store_analysis(pid, source_ids, task_type, baseline_version_id, status, dem
     return rid
 
 
-# ---------------------------------------------------------------------------
 # 路由
-# ---------------------------------------------------------------------------
 
 @app.get("/api/health")
 def health():
@@ -619,9 +595,7 @@ def health():
             "llm": llm.config_summary()}
 
 
-# ---------------------------------------------------------------------------
 # 认证
-# ---------------------------------------------------------------------------
 
 @app.post("/api/auth/register")
 def register(body: RegisterRequest):
@@ -674,9 +648,7 @@ def me(authorization: str | None = Header(default=None)):
     return {"user": user}
 
 
-# ---------------------------------------------------------------------------
 # 项目
-# ---------------------------------------------------------------------------
 
 @app.get("/api/projects")
 def list_projects(authorization: str | None = Header(default=None)):
@@ -1044,7 +1016,7 @@ def apply_changes(pid: str, body: ApplyRequest, authorization: str | None = Head
             if prev:
                 return json.loads(prev["response_json"])
 
-        # T13：分析基于的基线必须仍是当前版本
+        # 采纳前确认基线仍是当前版本，防用过期分析覆盖新版本
         if row["current_version_id"] != baseline_version_id:
             raise HTTPException(
                 status_code=409,
@@ -1157,9 +1129,7 @@ def get_version(pid: str, vid: str, authorization: str | None = Header(default=N
     }
 
 
-# ---------------------------------------------------------------------------
 # Markdown 导出
-# ---------------------------------------------------------------------------
 
 INTENT_LABEL = {"requested": "提出", "hypothetical": "设想", "excluded": "排除", "unclear": "待澄清"}
 

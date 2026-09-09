@@ -1,23 +1,17 @@
 # -*- coding: utf-8 -*-
 """
-模型调用客户端
+模型调用客户端。
 
-通过「OpenAI 兼容」的 Chat Completions HTTP 接口调用任意中文/通用模型，
-覆盖 DeepSeek、Moonshot(Kimi)、智谱 GLM、通义千问(DashScope)、OpenAI 等
-绝大多数提供 OpenAI 兼容端点的服务商。
+走 OpenAI 兼容的 /chat/completions 接口，能接 DeepSeek、Kimi、GLM、通义等
+任何提供这个端点的服务商。
 
-配置方式（二选一，环境变量优先于 .env）：
-  1. 在项目根目录创建 .env 文件（内容见 .env.example）
-  2. 在启动命令前设置环境变量
+环境变量（或 .env）：
+  LLM_API_KEY    密钥
+  LLM_BASE_URL   接口地址，例如 https://api.deepseek.com/v1（自动拼 /chat/completions）
+  LLM_MODEL      模型名，例如 deepseek-chat
+  LLM_TIMEOUT    超时秒数，默认 60
 
-变量：
-  LLM_API_KEY    必填，模型服务商提供的 API 密钥
-  LLM_BASE_URL   必填，接口基础地址，例如 https://api.deepseek.com/v1
-                 （程序会自动拼接 /chat/completions）
-  LLM_MODEL      必填，模型名，例如 deepseek-chat
-  LLM_TIMEOUT    可选，请求超时秒数，默认 60
-
-密钥只保存在后端环境/文件中，绝不进入前端代码、导出文件或源码仓库。
+密钥只放后端环境，不进前端和源码。
 """
 import json
 import os
@@ -26,15 +20,11 @@ import time
 import urllib.error
 import urllib.request
 
-# ---------------------------------------------------------------------------
-# 配置加载
-# ---------------------------------------------------------------------------
-
 _ENV_FILE = os.path.join(os.path.dirname(__file__), "..", ".env")
 
 
 def _load_dotenv(path):
-    """极简 .env 解析（KEY=VALUE 每行，忽略 # 注释）。"""
+    # 简单解析 KEY=VALUE，忽略 # 注释
     if not os.path.exists(path):
         return {}
     out = {}
@@ -77,10 +67,6 @@ def config_summary() -> dict:
     return {"configured": is_configured(), "model": c["model"] or None}
 
 
-# ---------------------------------------------------------------------------
-# 结构化调用
-# ---------------------------------------------------------------------------
-
 class LLMError(Exception):
     def __init__(self, kind, message):
         self.kind = kind  # unconfigured / timeout / http / invalid
@@ -104,13 +90,13 @@ def _strip_fences(text: str) -> str:
 
 
 def _extract_json(text: str):
-    """从模型返回文本中稳健提取 JSON 对象。"""
+    # 模型有时会包一层 ``` 代码块，先去掉
     text = _strip_fences(text)
     try:
         return json.loads(text)
     except json.JSONDecodeError:
         pass
-    # 退而求其次：找第一个 { 到最后一个 }
+    # 实在不行就找第一个 { 到最后一个 }
     start = text.find("{")
     end = text.rfind("}")
     if start != -1 and end != -1 and end > start:
@@ -122,11 +108,7 @@ def _extract_json(text: str):
 
 
 def chat_json(messages, retry=1):
-    """
-    调用模型并返回解析后的 JSON 对象（dict）。
-
-    返回 dict: { "ok", "data", "error", "kind", "model", "usage", "duration_ms", "retried" }
-    """
+    # 返回 { ok, data, error, kind, model, usage, duration_ms, retried }
     cfg = get_config()
     if not is_configured():
         return {
@@ -169,7 +151,7 @@ def chat_json(messages, retry=1):
             except LLMError as e:
                 last_error = e
                 if attempt < retry:
-                    # 把错误反馈追加给模型，重试一次
+                    # 把错误反馈给模型，让它重试一次
                     payload["messages"] = messages + [
                         {"role": "assistant", "content": content},
                         {"role": "user", "content": f"上面的输出无法解析为 JSON（错误：{e.message}）。请重新只输出一个合法的 JSON 对象。"},

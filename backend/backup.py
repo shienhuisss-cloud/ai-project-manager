@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
-"""
-数据备份与恢复
+"""数据备份和恢复脚本。
 
 用法：
-  python backend/backup.py backup            # 备份 app.db 到 backups/ 目录
-  python backend/backup.py restore <文件>     # 从备份文件恢复（会覆盖当前 app.db）
+  python backend/backup.py backup            备份 app.db 到 backups/
+  python backend/backup.py restore <文件>     从备份恢复（覆盖当前 app.db）
 
-备份用 SQLite 的在线备份 API，可在服务运行时安全执行（WAL 模式下不会拿到半截数据）。
-恢复建议在停止服务后执行，避免覆盖正在写入的数据库。
+备份走 SQLite 自带的 online backup，服务运行时也能安全执行。
+恢复最好先停服务。
 """
 import os
 import shutil
@@ -42,7 +41,7 @@ def restore(src_file):
     if not os.path.exists(src_file):
         print(f"备份文件不存在：{src_file}")
         sys.exit(1)
-    # 额外保留一份恢复前的当前库，防止误操作
+    # 恢复前先把当前库另存一份，防止误操作
     safety = DB_PATH + ".pre_restore.bak"
     if os.path.exists(DB_PATH):
         shutil.copy2(DB_PATH, safety)

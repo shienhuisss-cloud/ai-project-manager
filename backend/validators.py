@@ -1,12 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-后端校验——模型输出的结构化校验 + 证据/ID 归属检查。
-
-规则：
-- 证据引用必须包含程序提供的 source_id 和原文片段，且引用文字确实存在。
-- 模型只能引用后端传入的 ID；跨项目或伪造的 source_id / requirement_id 会被拒绝。
-- 候选类型、字段约束由确定性代码校验，不信任模型自报。
-"""
+"""校验模型返回的结构，重点是证据要真实存在、ID 要属于本项目。"""
 import json
 
 from fastapi import HTTPException
@@ -20,7 +13,6 @@ class ValidationError(Exception):
 
 
 def _valid_evidence(evidence, valid_source_ids):
-    """校验证据数组：非空、source_id 属于本项目、quote 真实存在。"""
     if not isinstance(evidence, list) or not evidence:
         raise ValidationError("至少需要一条证据")
     cleaned = []
@@ -34,6 +26,7 @@ def _valid_evidence(evidence, valid_source_ids):
         if not quote:
             raise ValidationError("证据缺少原文片段 quote")
         src_text = valid_source_ids[sid]
+        # 关键校验：引文必须逐字出现在原文里，防止模型编造
         if quote not in src_text:
             raise ValidationError(f"证据原文片段在 source {sid} 中不存在（伪造引文）")
         cleaned.append({"source_id": sid, "quote": quote})
@@ -41,10 +34,7 @@ def _valid_evidence(evidence, valid_source_ids):
 
 
 def validate_extract(data, sources):
-    """
-    校验提取结果。sources: [{id, text}, ...]
-    返回清洗后的 {requirements, questions}。
-    """
+    # sources 形如 [{id, text}, ...]
     if not isinstance(data, dict):
         raise ValidationError("提取结果不是对象")
     candidates = data.get("candidates", data.get("requirements", []))
@@ -85,10 +75,6 @@ def validate_extract(data, sources):
 
 
 def validate_compare(data, baseline_snapshot, sources):
-    """
-    校验变更比较结果。baseline_snapshot: 基线版本快照（含稳定 requirement_id）。
-    返回清洗后的 changes 列表（含 change_index）。
-    """
     if not isinstance(data, dict):
         raise ValidationError("比较结果不是对象")
     changes = data.get("changes")
@@ -113,8 +99,6 @@ def validate_compare(data, baseline_snapshot, sources):
                 raise ValidationError(f"变更引用了基线中不存在的 requirement_id：{rid}")
         evidence = _valid_evidence(c.get("evidence"), valid_source_ids)
         proposed_after = (c.get("proposed_after") or "").strip()
-        # 类型约束：removed 需要有明确取消依据（体现在 reason/evidence），
-        # added/modified 需要 proposed_after 非空
         if kind in ("added", "modified") and not proposed_after:
             raise ValidationError(f"{kind} 类型缺少 proposed_after")
         cleaned.append({

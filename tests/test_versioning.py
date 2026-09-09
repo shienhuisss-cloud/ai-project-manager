@@ -42,7 +42,7 @@ def test_confirm_creates_immutable_snapshot(client, alice):
 
 
 def test_v1_unchanged_after_v2(client, alice):
-    """T11：确认 V2 后 V1 快照仍保持不变。"""
+    # 确认 V2 之后，V1 的快照和稳定 ID 都不变
     pid = _create_project(client, alice)
     sid1 = _add_source(client, alice, pid, DEMO_SOURCE_001, "SRC-001")
     _analyze(client, alice, pid, [sid1])
@@ -68,7 +68,7 @@ def test_v1_unchanged_after_v2(client, alice):
 
 
 def test_confirm_idempotent_by_request_id(client, alice):
-    """T12：同一 request_id 重复确认只创建一个版本。"""
+    # 同一个 request_id 重复确认，只应该有一个版本
     pid = _create_project(client, alice)
     sid = _add_source(client, alice, pid, DEMO_SOURCE_001, "SRC-001")
     _analyze(client, alice, pid, [sid])
@@ -82,7 +82,7 @@ def test_confirm_idempotent_by_request_id(client, alice):
 
 
 def test_apply_rejects_stale_baseline(client, alice):
-    """T13：采纳时基线已变（有更新版本）应返回 409。"""
+    # 基线已经产生新版本时，再拿旧分析结果去采纳，应该被拒
     pid = _create_project(client, alice)
     sid1 = _add_source(client, alice, pid, DEMO_SOURCE_001, "SRC-001")
     _analyze(client, alice, pid, [sid1])

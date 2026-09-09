@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""结构化校验测试（T08）：拒绝伪造的 source_id、引文、requirement_id、非法类型。"""
+"""结构化校验测试：拒绝伪造的 source_id、引文、requirement_id、非法类型。"""
 import pytest
 
 from backend import validators

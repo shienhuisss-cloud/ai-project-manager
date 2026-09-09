@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""项目级访问控制测试（T16）：数据隔离、成员协作。"""
+"""项目级访问控制的测试：数据隔离、成员协作。"""
 from conftest import auth
 
 
@@ -10,7 +10,7 @@ def _mk_project(client, token, name):
 
 
 def test_cross_user_cannot_access(client, alice, bob):
-    """T16：用户 B 用用户 A 的项目 ID 调用接口，服务端应拒绝且不泄露内容。"""
+    # 用户 B 用 A 的项目 ID 调接口，应被拒绝且不泄露内容
     pid = _mk_project(client, alice, "A 的私有项目")
 
     # 读取、写入、确认、导出全部应 404

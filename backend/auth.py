@@ -1,22 +1,15 @@
 # -*- coding: utf-8 -*-
-"""
-认证与安全工具——只用标准库，不引入额外依赖。
-
-- 密码哈希：PBKDF2-HMAC-SHA256（带盐、可配置迭代次数），绝不存明文。
-- 会话令牌：secrets 生成的高熵随机 token，服务端保存，可撤销。
-- 常量时间比较防时序攻击。
-"""
+"""密码哈希和会话令牌。只用标准库，不引额外依赖。"""
 import hashlib
 import hmac
 import secrets
 
-# 密码哈希参数
 PBKDF2_ITERATIONS = 120_000
 SALT_BYTES = 16
 
 
 def hash_password(password: str) -> str:
-    """返回格式：pbkdf2_sha256$iterations$salt_hex$hash_hex"""
+    # 存成 pbkdf2_sha256$迭代次数$盐$哈希
     salt = secrets.token_bytes(SALT_BYTES)
     dk = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, PBKDF2_ITERATIONS)
     return f"pbkdf2_sha256${PBKDF2_ITERATIONS}${salt.hex()}${dk.hex()}"

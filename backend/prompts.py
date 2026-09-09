@@ -1,9 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-模型提示词——需求提取与变更比较两份版本化提示词。
-
-PROMPT_VERSION 用于记录到 AnalysisRun，便于追踪「某次分析用的是哪版提示词」。
-"""
+"""需求提取和变更比较两份提示词。PROMPT_VERSION 会记进 analysis_run，方便追踪用了哪版。"""
 import json
 
 PROMPT_VERSION = "v1.0"
