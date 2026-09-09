@@ -1,4 +1,4 @@
-// AI 项目需求管家 —— 前端逻辑（M4）
+// AI 项目需求管家 —— 前端逻辑
 const state = {
   project: null,
   draft: { requirements: [], questions: [] },
@@ -261,7 +261,7 @@ function renderDraft() {
   if (state.draft.demo_mode) {
     const banner = document.createElement("div");
     banner.className = "demo-banner";
-    banner.textContent = "⚠️ 示例模式：以下需求草稿来自任务书固定示例，非真实模型分析结果。";
+    banner.textContent = "⚠️ 演示模式：以下需求草稿来自内置示例材料，非真实模型分析结果。";
     el.prepend(banner);
   }
 }
@@ -334,7 +334,7 @@ function renderChanges() {
   if (state.changesDemoMode) {
     const banner = document.createElement("div");
     banner.className = "demo-banner";
-    banner.textContent = "⚠️ 示例模式：以下变更候选来自任务书固定示例，非真实模型分析结果。";
+    banner.textContent = "⚠️ 演示模式：以下变更候选来自内置示例材料，非真实模型分析结果。";
     el.appendChild(banner);
   }
 

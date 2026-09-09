@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-模型调用客户端（M3）
+模型调用客户端
 
 通过「OpenAI 兼容」的 Chat Completions HTTP 接口调用任意中文/通用模型，
 覆盖 DeepSeek、Moonshot(Kimi)、智谱 GLM、通义千问(DashScope)、OpenAI 等

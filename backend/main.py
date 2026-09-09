@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 """
-AI 项目需求管家 —— 后端（M4 认证、权限、限额与部署）
+AI 项目需求管家 —— 后端入口
 
-M4 目标：面向不同客户的小范围试用准备。
+主要能力：
 - 身份认证：注册/登录/登出，PBKDF2 密码哈希 + 服务端会话令牌。
 - 项目级访问控制：每个项目接口校验 owner / membership，不依赖前端隐藏按钮。
-- 输入上限与请求限额。
-- 数据备份与恢复（backup.py）。
-- 沿用 M2/M3 的 SQLite 持久化、版本快照、事务幂等、真实模型分析。
+- 需求提取与变更比较：调用真实模型 + 结构化校验 + 证据归属检查。
+- 版本管理：确认后生成不可变快照，事务 + 请求幂等。
+- 输入上限、请求限额、Markdown 导出、数据备份。
 
 部署说明见 README 与 DEPLOY.md。
 """
@@ -196,7 +196,7 @@ def _jload_qs(s):
 
 
 # ---------------------------------------------------------------------------
-# 固定示例材料与结果（任务书第 8 节）
+# 内置示例材料与演示结果（用于未配置模型时体验完整流程）
 # ---------------------------------------------------------------------------
 
 DEMO_SOURCE_001 = (
@@ -615,7 +615,7 @@ def _store_analysis(pid, source_ids, task_type, baseline_version_id, status, dem
 
 @app.get("/api/health")
 def health():
-    return {"ok": True, "milestone": "M4", "db": os.path.abspath(DB_PATH),
+    return {"ok": True, "db": os.path.abspath(DB_PATH),
             "llm": llm.config_summary()}
 
 

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-数据备份与恢复（M4）
+数据备份与恢复
 
 用法：
   python backend/backup.py backup            # 备份 app.db 到 backups/ 目录
