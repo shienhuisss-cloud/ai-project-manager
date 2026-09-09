@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# 运行产物
+server.log
+*.db
+*.db-wal
+*.db-shm
+*.sqlite3
+backups/
+
+# 密钥与本地配置（切勿提交真实密钥）
+.env
+.env.txt
+

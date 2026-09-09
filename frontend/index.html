@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI 项目需求管家</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <h1>AI 项目需求管家</h1>
+    <span class="sub" id="sub-badge">M4 · 试用准备</span>
+    <span class="llm-status" id="llm-status">模型状态检测中…</span>
+    <span class="user-box" id="user-box" hidden>
+      <span id="user-name"></span>
+      <button class="btn small ghost-light" id="btn-logout">登出</button>
+    </span>
+  </header>
+
+  <!-- 登录/注册 -->
+  <section id="view-auth" class="view" hidden>
+    <div class="panel auth-panel">
+      <h2 id="auth-title">登录</h2>
+      <input id="auth-username" type="text" placeholder="用户名" />
+      <input id="auth-password" type="password" placeholder="密码（至少 6 位）" />
+      <div class="row">
+        <button class="btn primary" id="btn-auth-submit">登录</button>
+        <button class="btn" id="btn-auth-toggle">没有账号？注册</button>
+      </div>
+      <p class="muted" id="auth-msg"></p>
+    </div>
+  </section>
+
+  <!-- 项目列表 -->
+  <section id="view-list" class="view" hidden>
+    <div class="panel">
+      <div class="panel-head">
+        <h2>项目列表</h2>
+        <button class="btn primary" id="btn-new-project">＋ 新建项目</button>
+      </div>
+      <div id="project-list" class="list"></div>
+      <p id="project-empty" class="muted">还没有项目，点击“新建项目”开始。</p>
+    </div>
+  </section>
+
+  <!-- 项目工作台 -->
+  <section id="view-workbench" class="view" hidden>
+    <div class="panel">
+      <div class="workbench-head">
+        <button class="btn ghost" id="btn-back">← 返回列表</button>
+        <div class="wb-title">
+          <h2 id="wb-project-name">项目</h2>
+          <div class="wb-meta">
+            <span id="wb-current-version">当前版本：无</span>
+            <span class="badge" id="wb-draft-badge">草稿</span>
+          </div>
+        </div>
+        <button class="btn" id="btn-export">导出 Markdown</button>
+      </div>
+
+      <!-- 区域一：原始沟通 -->
+      <div class="zone">
+        <div class="zone-head">
+          <h3>原始沟通</h3>
+          <button class="btn small" id="btn-load-demo">载入示例材料</button>
+        </div>
+        <textarea id="source-input" rows="8"
+          placeholder="在此粘贴客户沟通文本……（示例材料走内置结果并标注“示例模式”，其他输入调用真实模型）"></textarea>
+        <div class="row">
+          <input id="source-label" type="text" placeholder="材料标签（可选）" />
+          <button class="btn" id="btn-add-source">保存材料</button>
+          <button class="btn primary" id="btn-analyze">整理需求</button>
+        </div>
+        <div id="source-list" class="chip-list"></div>
+        <p class="muted note">说明：任务书第 8 节的固定示例材料走内置结果并标注「示例模式」；其他输入调用真实模型分析。模型未配置时会明确提示，绝不伪造结果。</p>
+      </div>
+
+      <!-- 区域二：需求清单 -->
+      <div class="zone">
+        <div class="zone-head">
+          <h3>需求清单</h3>
+          <span class="draft-note" id="draft-editable-note">草稿（可编辑）</span>
+        </div>
+        <div id="candidate-list" class="candidate-list"></div>
+        <div id="draft-empty" class="muted">暂无草稿。先在“原始沟通”里粘贴材料并“整理需求”。</div>
+        <div class="row">
+          <button class="btn primary" id="btn-confirm">确认并保存版本</button>
+        </div>
+      </div>
+
+      <!-- 区域三：变更对比 -->
+      <div class="zone">
+        <div class="zone-head">
+          <h3>变更对比</h3>
+          <button class="btn" id="btn-compare">分析新沟通</button>
+        </div>
+        <div id="change-list" class="change-list"></div>
+        <div id="change-empty" class="muted">尚无变更建议。确认版本后，粘贴新材料并点击“分析新沟通”。</div>
+        <div class="row" id="apply-row" hidden>
+          <button class="btn primary" id="btn-apply">根据采纳项生成新版本</button>
+        </div>
+      </div>
+
+      <!-- 区域四：历史版本 -->
+      <div class="zone">
+        <div class="zone-head">
+          <h3>历史版本</h3>
+        </div>
+        <div id="version-list" class="version-list"></div>
+        <div id="version-empty" class="muted">暂无已确认版本。</div>
+      </div>
+    </div>
+  </section>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
