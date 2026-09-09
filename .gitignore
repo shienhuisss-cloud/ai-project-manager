@@ -3,6 +3,7 @@ __pycache__/
 *.pyc
 .venv/
 venv/
+.pytest_cache/
 
 # 运行产物
 server.log
@@ -15,4 +16,7 @@ backups/
 # 密钥与本地配置（切勿提交真实密钥）
 .env
 .env.txt
+
+# 开发任务书（本地参考用，不随项目发布）
+AI项目需求管家_开发任务书.md
 
