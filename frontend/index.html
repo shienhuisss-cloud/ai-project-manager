@@ -1,119 +1,476 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AI 项目需求管家</title>
-  <link rel="stylesheet" href="/style.css" />
-</head>
-<body>
-  <header class="topbar">
-    <h1>AI 项目需求管家</h1>
-    <span class="sub" id="sub-badge">需求版本管理工具</span>
-    <span class="llm-status" id="llm-status">模型状态检测中…</span>
-    <span class="user-box" id="user-box" hidden>
-      <span id="user-name"></span>
-      <button class="btn small ghost-light" id="btn-logout">登出</button>
-    </span>
-  </header>
-
-  <!-- 登录/注册 -->
-  <section id="view-auth" class="view" hidden>
-    <div class="panel auth-panel">
-      <h2 id="auth-title">登录</h2>
-      <input id="auth-username" type="text" placeholder="用户名" />
-      <input id="auth-password" type="password" placeholder="密码（至少 6 位）" />
-      <div class="row">
-        <button class="btn primary" id="btn-auth-submit">登录</button>
-        <button class="btn" id="btn-auth-toggle">没有账号？注册</button>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="需记，让项目需求、沟通证据与范围变更在同一个工作空间中协作。"
+    />
+    <title>需记 · 项目需求协作平台</title>
+    <link rel="stylesheet" href="/style.css" />
+    <script src="/app.js" defer></script>
+  </head>
+  <body>
+    <aside id="sidebar" class="sidebar" hidden>
+      <a class="brand brand-sidebar" href="/"
+        ><span class="brand-mark">N</span
+        ><span>需记<small>REQUIREMENTS WORKSPACE</small></span></a
+      >
+      <div class="workspace-label">
+        <span class="workspace-icon">W</span>
+        <div>项目工作空间<small>需求与交付协作</small></div>
       </div>
-      <p class="muted" id="auth-msg"></p>
-    </div>
-  </section>
-
-  <!-- 项目列表 -->
-  <section id="view-list" class="view" hidden>
-    <div class="panel">
-      <div class="panel-head">
-        <h2>项目列表</h2>
-        <button class="btn primary" id="btn-new-project">＋ 新建项目</button>
+      <p class="nav-caption">工作空间</p>
+      <button id="nav-projects" class="nav-item active">
+        <span class="nav-icon">▦</span>项目管理
+      </button>
+      <div id="project-nav" hidden>
+        <p class="nav-caption">当前项目</p>
+        <button class="nav-item" data-tab="overview">
+          <span class="nav-icon">◈</span>项目概览
+        </button>
+        <button class="nav-item" data-tab="materials">
+          <span class="nav-icon">▤</span>沟通材料<span
+            id="nav-count-materials"
+            class="nav-count"
+          ></span>
+        </button>
+        <button class="nav-item" data-tab="requirements">
+          <span class="nav-icon">☷</span>需求清单<span
+            id="nav-count-requirements"
+            class="nav-count"
+          ></span>
+        </button>
+        <button class="nav-item" data-tab="changes">
+          <span class="nav-icon">⇄</span>变更审核<span
+            id="nav-count-changes"
+            class="nav-count"
+          ></span>
+        </button>
+        <button class="nav-item" data-tab="versions">
+          <span class="nav-icon">◷</span>版本历史<span
+            id="nav-count-versions"
+            class="nav-count"
+          ></span>
+        </button>
       </div>
-      <div id="project-list" class="list"></div>
-      <p id="project-empty" class="muted">还没有项目，点击“新建项目”开始。</p>
-    </div>
-  </section>
-
-  <!-- 项目工作台 -->
-  <section id="view-workbench" class="view" hidden>
-    <div class="panel">
-      <div class="workbench-head">
-        <button class="btn ghost" id="btn-back">← 返回列表</button>
-        <div class="wb-title">
-          <h2 id="wb-project-name">项目</h2>
-          <div class="wb-meta">
-            <span id="wb-current-version">当前版本：无</span>
-            <span class="badge" id="wb-draft-badge">草稿</span>
+      <div class="sidebar-bottom">
+        <span class="sidebar-dot"></span>让范围清晰，让交付有据
+      </div>
+    </aside>
+    <header class="topbar">
+      <a id="auth-brand" class="brand" href="/"
+        ><span class="brand-mark">N</span>需记<small>项目需求协作平台</small></a
+      >
+      <div id="breadcrumb" class="breadcrumb" hidden>
+        <button id="crumb-root">工作空间</button><span>/</span
+        ><span id="crumb-project">项目管理</span
+        ><span id="crumb-divider" hidden>/</span><span id="crumb-page"></span>
+      </div>
+      <div class="top-actions">
+        <button id="btn-help" class="btn quiet small">使用帮助</button>
+        <div id="user-box" class="user-box" hidden>
+          <span id="user-avatar" class="avatar"></span
+          ><span id="user-name"></span
+          ><button id="btn-logout" class="btn quiet small">退出</button>
+        </div>
+      </div>
+    </header>
+    <main>
+      <section id="view-auth" class="landing" hidden>
+        <div class="intro">
+          <p class="eyebrow">项目需求协作平台</p>
+          <h1>需求有共识，<br />交付有依据。</h1>
+          <p class="lead">
+            汇集项目沟通，建立需求基线，协同审核范围变化。让每一次决策都有清晰的来龙去脉。
+          </p>
+          <div class="capabilities">
+            <div>
+              <span class="capability-icon">01</span>
+              <div>
+                <h3>统一需求信息</h3>
+                <p>沟通材料与需求条目关联，重要信息随时可查。</p>
+              </div>
+            </div>
+            <div>
+              <span class="capability-icon">02</span>
+              <div>
+                <h3>规范变更审核</h3>
+                <p>逐条判断范围变化，采纳结果形成新的版本。</p>
+              </div>
+            </div>
+            <div>
+              <span class="capability-icon">03</span>
+              <div>
+                <h3>保留决策历史</h3>
+                <p>确认内容留存快照，团队协作保持同一份基线。</p>
+              </div>
+            </div>
+          </div>
+          <div class="intro-note">
+            <span></span>从需求沟通到版本确认，一个工作空间完成。
           </div>
         </div>
-        <button class="btn" id="btn-export">导出 Markdown</button>
+        <form id="auth-form" class="panel auth-panel">
+          <div class="auth-heading">
+            <span class="brand-mark">N</span>
+            <h2 id="auth-title">登录工作空间</h2>
+            <p>访问你的项目、需求与协作记录</p>
+          </div>
+          <label for="auth-username">用户名</label
+          ><input
+            id="auth-username"
+            autocomplete="username"
+            required
+            minlength="3"
+            maxlength="50"
+            placeholder="请输入用户名"
+          />
+          <label for="auth-password">密码</label
+          ><input
+            id="auth-password"
+            type="password"
+            autocomplete="current-password"
+            required
+            minlength="6"
+            maxlength="200"
+            placeholder="请输入密码"
+          />
+          <button id="btn-auth-submit" class="btn primary large" type="submit">
+            登录
+          </button>
+          <button id="btn-auth-toggle" class="btn quiet" type="button">
+            创建工作空间账号
+          </button>
+          <p id="auth-msg" class="error" role="alert"></p>
+          <p class="auth-footnote">项目资料仅对项目所有者与已添加成员开放</p>
+        </form>
+      </section>
+
+      <section id="view-list" class="view" hidden>
+        <div class="page-head">
+          <div>
+            <p class="eyebrow">WORKSPACE</p>
+            <h1>项目管理</h1>
+            <p class="muted">集中管理项目需求，跟进范围变化与版本进展。</p>
+          </div>
+          <button id="btn-new-project" class="btn primary">＋ 新建项目</button>
+        </div>
+        <div class="stats-grid list-stats">
+          <article class="stat-card">
+            <div>
+              <span>全部项目</span><strong id="stat-projects">0</strong
+              ><small>当前账号可访问的项目</small>
+            </div>
+            <span class="stat-icon">▦</span>
+          </article>
+          <article class="stat-card">
+            <div>
+              <span>已建立需求基线</span><strong id="stat-baselined">0</strong
+              ><small>已确认至少一个正式版本</small>
+            </div>
+            <span class="stat-icon teal">✓</span>
+          </article>
+          <article class="stat-card">
+            <div>
+              <span>待建立基线</span><strong id="stat-pending">0</strong
+              ><small>尚未完成首次需求确认</small>
+            </div>
+            <span class="stat-icon amber">◷</span>
+          </article>
+        </div>
+        <section class="panel project-panel">
+          <div class="section-head">
+            <div>
+              <h2>
+                全部项目 <span id="project-total" class="count-label">0</span>
+              </h2>
+            </div>
+            <div class="search-box">
+              <span>⌕</span
+              ><input
+                id="project-search"
+                type="search"
+                aria-label="搜索项目"
+                placeholder="搜索项目名称"
+              />
+            </div>
+          </div>
+          <div class="project-columns">
+            <span>项目名称</span><span>需求基线</span><span>最近更新</span
+            ><span>操作</span>
+          </div>
+          <div id="project-list"></div>
+          <div id="project-empty" class="empty">
+            <span class="empty-symbol">▦</span>
+            <h3>开始管理你的第一个项目</h3>
+            <p>创建项目并添加沟通材料，逐步建立清晰的需求基线。</p>
+            <button id="btn-empty-project" class="btn primary">
+              ＋ 新建项目
+            </button>
+          </div>
+          <p id="search-empty" class="empty" hidden>
+            没有找到匹配的项目，请调整搜索关键词。
+          </p>
+        </section>
+      </section>
+
+      <section id="view-workbench" class="view workbench" hidden>
+        <div class="page-head project-head">
+          <div>
+            <button id="btn-back" class="btn quiet back-link">
+              ← 全部项目
+            </button>
+            <div class="project-heading">
+              <h1 id="wb-project-name"></h1>
+              <span id="wb-current-version" class="badge"></span>
+            </div>
+            <p class="muted project-description">
+              统一需求基线，协作处理项目范围变化。
+            </p>
+          </div>
+          <div class="row">
+            <button id="btn-members" class="btn">成员协作</button
+            ><button id="btn-export" class="btn">导出需求文档</button>
+          </div>
+        </div>
+        <div id="demo-notice" class="banner" hidden>
+          培训演练空间 · 此处为独立的只读示例，不用于真实项目交付。
+        </div>
+        <div id="action-feedback" class="feedback" role="alert" hidden></div>
+        <nav class="project-tabs" aria-label="项目导航">
+          <button data-tab="overview" class="active">项目概览</button
+          ><button data-tab="materials">沟通材料</button
+          ><button data-tab="requirements">需求清单</button
+          ><button data-tab="changes">变更审核</button
+          ><button data-tab="versions">版本历史</button>
+        </nav>
+
+        <section id="project-overview" data-page="overview">
+          <div class="stats-grid">
+            <article class="stat-card">
+              <div>
+                <span>正式需求</span
+                ><strong id="overview-requirements">0</strong
+                ><small>当前已确认版本中的需求条目</small>
+              </div>
+              <span class="stat-icon">☷</span>
+            </article>
+            <article class="stat-card">
+              <div>
+                <span>沟通材料</span><strong id="overview-sources">0</strong
+                ><small>已归档的项目沟通资料</small>
+              </div>
+              <span class="stat-icon teal">▤</span>
+            </article>
+            <article class="stat-card">
+              <div>
+                <span>待审核变更</span><strong id="overview-changes">0</strong
+                ><small>尚未提交审核的变更建议</small>
+              </div>
+              <span class="stat-icon amber">⇄</span>
+            </article>
+            <article class="stat-card">
+              <div>
+                <span>需求版本</span><strong id="overview-versions">0</strong
+                ><small>已保存的正式需求基线</small>
+              </div>
+              <span class="stat-icon violet">◷</span>
+            </article>
+          </div>
+          <div class="overview-grid">
+            <section class="panel">
+              <div class="section-head">
+                <h2>当前工作</h2>
+                <span id="overview-status" class="badge"></span>
+              </div>
+              <div id="overview-tasks" class="task-list"></div>
+            </section>
+            <section class="panel">
+              <div class="section-head">
+                <h2>项目动态</h2>
+                <span class="muted fine">最近更新</span>
+              </div>
+              <div id="project-activity" class="activity-list"></div>
+            </section>
+          </div>
+          <section class="panel overview-questions">
+            <div class="section-head">
+              <h2>待澄清事项</h2>
+              <button class="btn quiet small" data-tab="requirements">
+                查看需求 →
+              </button>
+            </div>
+            <div id="overview-questions"></div>
+          </section>
+        </section>
+
+        <section id="sources-zone" data-page="materials" hidden>
+          <div class="content-head">
+            <div>
+              <h2>沟通材料</h2>
+              <p class="muted">
+                保存原始沟通，并选择本次需要整理或比较的内容。
+              </p>
+            </div>
+            <span id="source-count" class="badge"></span>
+          </div>
+          <div class="materials-grid">
+            <section class="panel">
+              <div class="section-head">
+                <h3>新增材料</h3>
+                <span class="muted fine">支持聊天记录、会议纪要、邮件</span>
+              </div>
+              <fieldset id="source-editor">
+                <label for="source-label">材料名称</label>
+                <div class="row">
+                  <input
+                    id="source-label"
+                    maxlength="200"
+                    aria-label="材料标签"
+                    placeholder="例如：一期需求沟通会"
+                  /><select id="source-type" aria-label="来源类型">
+                    <option value="chat">聊天记录</option>
+                    <option value="meeting">会议纪要</option>
+                    <option value="email">邮件</option>
+                    <option value="other">其他</option>
+                  </select>
+                </div>
+                <label for="source-input">沟通原文</label
+                ><textarea
+                  id="source-input"
+                  rows="12"
+                  maxlength="50000"
+                  placeholder="粘贴原始沟通，保留说话人与上下文信息。"
+                ></textarea>
+                <div class="editor-footer">
+                  <span class="muted fine">建议先移除与项目无关的敏感信息</span
+                  ><button id="btn-add-source" class="btn primary">
+                    保存材料
+                  </button>
+                </div>
+              </fieldset>
+            </section>
+            <section class="panel">
+              <div class="section-head">
+                <h3>项目材料库</h3>
+                <span class="muted fine">按保存时间排列</span>
+              </div>
+              <div id="source-list" class="source-list"></div>
+              <div class="selection-actions">
+                <p class="muted fine">仅处理勾选的材料，历史材料保持留存。</p>
+                <button id="btn-analyze" class="btn primary">
+                  智能整理需求</button
+                ><button id="btn-material-compare" class="btn">
+                  与当前版本比较
+                </button>
+              </div>
+              <p
+                id="analysis-metrics"
+                class="muted fine"
+                aria-live="polite"
+              ></p>
+            </section>
+          </div>
+        </section>
+
+        <section id="draft-zone" class="panel" data-page="requirements" hidden>
+          <div class="section-head">
+            <div>
+              <h2 id="draft-title">需求清单</h2>
+              <p id="draft-editable-note" class="muted fine"></p>
+            </div>
+            <div class="row">
+              <span id="wb-draft-badge" class="badge"></span
+              ><button id="btn-add-requirement" class="btn primary">
+                ＋ 新增需求
+              </button>
+            </div>
+          </div>
+          <div class="requirements-toolbar">
+            <div class="segmented">
+              <button id="btn-published-mode" class="active">正式基线</button
+              ><button id="btn-draft-mode">审核草稿</button>
+            </div>
+            <button id="btn-create-draft" class="btn small">
+              从当前版本创建草稿
+            </button>
+          </div>
+          <div id="candidate-list" class="card-list"></div>
+          <div id="draft-empty" class="empty">
+            <span class="empty-symbol">☷</span>
+            <h3>尚无需求条目</h3>
+            <p>从沟通材料智能整理，或手动新增有原文依据的需求。</p>
+            <button class="btn" data-tab="materials">前往沟通材料</button>
+          </div>
+          <label id="questions-label" for="draft-questions"
+            >项目级待澄清事项（每行一项）</label
+          ><textarea id="draft-questions" rows="3"></textarea>
+          <div id="draft-actions" class="row sticky-actions">
+            <span id="draft-save-status" class="muted fine">草稿已保存</span
+            ><button id="btn-save-draft" class="btn">保存草稿</button
+            ><button id="btn-confirm" class="btn primary">确认需求版本</button>
+          </div>
+        </section>
+
+        <section id="changes-zone" class="panel" data-page="changes" hidden>
+          <div class="section-head">
+            <div>
+              <h2>变更审核</h2>
+              <p id="change-context" class="muted fine"></p>
+            </div>
+            <button id="btn-compare" class="btn primary">分析所选新沟通</button>
+          </div>
+          <div id="change-list" class="card-list"></div>
+          <div id="change-empty" class="empty">
+            <span class="empty-symbol">⇄</span>
+            <h3>暂无待审核变更</h3>
+            <p>添加并勾选新的沟通材料，与已确认的需求基线进行比较。</p>
+            <button class="btn" data-tab="materials">选择沟通材料</button>
+          </div>
+          <div id="apply-row" class="row sticky-actions" hidden>
+            <span id="decision-count" class="muted"></span
+            ><button id="btn-apply" class="btn primary">提交审核结果</button>
+          </div>
+        </section>
+
+        <section id="versions-zone" class="panel" data-page="versions" hidden>
+          <div class="section-head">
+            <div>
+              <h2>版本历史</h2>
+              <p class="muted fine">
+                每次确认保留独立快照，可查看内容、比较变化或导出文档。
+              </p>
+            </div>
+          </div>
+          <div id="version-list" class="version-list"></div>
+          <div id="version-empty" class="empty">
+            <span class="empty-symbol">◷</span>
+            <h3>尚未建立需求基线</h3>
+            <p>完成需求审核并确认后，首个正式版本会保存在这里。</p>
+            <button class="btn" data-tab="requirements">前往需求清单</button>
+          </div>
+        </section>
+      </section>
+    </main>
+    <footer>
+      需记 · 项目需求协作平台<button
+        id="btn-data-policy"
+        class="btn quiet small"
+      >
+        数据使用说明
+      </button>
+    </footer>
+    <dialog id="modal" aria-labelledby="modal-title">
+      <div class="modal-head">
+        <h2 id="modal-title"></h2>
+        <button id="modal-close" class="btn quiet" aria-label="关闭弹窗">
+          ✕
+        </button>
       </div>
-
-      <!-- 区域一：原始沟通 -->
-      <div class="zone">
-        <div class="zone-head">
-          <h3>原始沟通</h3>
-          <button class="btn small" id="btn-load-demo">载入示例材料</button>
-        </div>
-        <textarea id="source-input" rows="8"
-          placeholder="在此粘贴客户沟通文本……（示例材料走内置结果并标注“示例模式”，其他输入调用真实模型）"></textarea>
-        <div class="row">
-          <input id="source-label" type="text" placeholder="材料标签（可选）" />
-          <button class="btn" id="btn-add-source">保存材料</button>
-          <button class="btn primary" id="btn-analyze">整理需求</button>
-        </div>
-        <div id="source-list" class="chip-list"></div>
-        <p class="muted note">说明：内置示例材料走演示结果并标注「演示模式」；其他输入调用真实模型分析。模型未配置时会明确提示，绝不伪造结果。</p>
-      </div>
-
-      <!-- 区域二：需求清单 -->
-      <div class="zone">
-        <div class="zone-head">
-          <h3>需求清单</h3>
-          <span class="draft-note" id="draft-editable-note">草稿（可编辑）</span>
-        </div>
-        <div id="candidate-list" class="candidate-list"></div>
-        <div id="draft-empty" class="muted">暂无草稿。先在“原始沟通”里粘贴材料并“整理需求”。</div>
-        <div class="row">
-          <button class="btn primary" id="btn-confirm">确认并保存版本</button>
-        </div>
-      </div>
-
-      <!-- 区域三：变更对比 -->
-      <div class="zone">
-        <div class="zone-head">
-          <h3>变更对比</h3>
-          <button class="btn" id="btn-compare">分析新沟通</button>
-        </div>
-        <div id="change-list" class="change-list"></div>
-        <div id="change-empty" class="muted">尚无变更建议。确认版本后，粘贴新材料并点击“分析新沟通”。</div>
-        <div class="row" id="apply-row" hidden>
-          <button class="btn primary" id="btn-apply">根据采纳项生成新版本</button>
-        </div>
-      </div>
-
-      <!-- 区域四：历史版本 -->
-      <div class="zone">
-        <div class="zone-head">
-          <h3>历史版本</h3>
-        </div>
-        <div id="version-list" class="version-list"></div>
-        <div id="version-empty" class="muted">暂无已确认版本。</div>
-      </div>
-    </div>
-  </section>
-
-  <div id="toast" class="toast" hidden></div>
-
-  <script src="/app.js"></script>
-</body>
+      <div id="modal-body"></div>
+    </dialog>
+    <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  </body>
 </html>

@@ -4,6 +4,13 @@ __pycache__/
 .venv/
 venv/
 .pytest_cache/
+.test-runs/
+.artifacts/
+test-results/
+playwright-report/
+.claude/
+*.bak
+evaluation/results/
 
 # 运行产物
 server.log
@@ -15,7 +22,8 @@ backups/
 
 # 密钥与本地配置（切勿提交真实密钥）
 .env
-.env.txt
+.env.*
+!.env.example
 
 # 开发任务书（本地参考用，不随项目发布）
 AI项目需求管家_开发任务书.md

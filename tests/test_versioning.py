@@ -3,6 +3,7 @@
 
 这些测试用固定示例材料（demo 模式），不依赖真实模型，因此可在无密钥环境下运行。
 """
+
 from backend.main import DEMO_SOURCE_001, DEMO_SOURCE_002
 
 from conftest import auth
@@ -54,9 +55,11 @@ def test_v1_unchanged_after_v2(client, alice):
     sid2 = _add_source(client, alice, pid, DEMO_SOURCE_002, "SRC-002")
     cmp = client.post(f"/api/projects/{pid}/compare", json={"source_ids": [sid2]}, headers=auth(alice)).json()
     decisions = [{"change_index": c["change_index"], "decision": "accept"} for c in cmp["changes"]]
-    v2 = client.post(f"/api/projects/{pid}/apply",
-                     json={"run_id": cmp["run_id"], "request_id": "r2", "decisions": decisions},
-                     headers=auth(alice)).json()
+    v2 = client.post(
+        f"/api/projects/{pid}/apply",
+        json={"run_id": cmp["run_id"], "request_id": "r2", "decisions": decisions},
+        headers=auth(alice),
+    ).json()
     assert v2["seq"] == 2
     assert v2["parent_version_id"] == v1["id"]
 
@@ -86,19 +89,25 @@ def test_apply_rejects_stale_baseline(client, alice):
     pid = _create_project(client, alice)
     sid1 = _add_source(client, alice, pid, DEMO_SOURCE_001, "SRC-001")
     _analyze(client, alice, pid, [sid1])
-    v1 = client.post(f"/api/projects/{pid}/confirm", json={"request_id": "r1"}, headers=auth(alice)).json()
+    client.post(
+        f"/api/projects/{pid}/confirm", json={"request_id": "r1"}, headers=auth(alice)
+    ).raise_for_status()
 
     sid2 = _add_source(client, alice, pid, DEMO_SOURCE_002, "SRC-002")
     cmp = client.post(f"/api/projects/{pid}/compare", json={"source_ids": [sid2]}, headers=auth(alice)).json()
     decisions = [{"change_index": c["change_index"], "decision": "accept"} for c in cmp["changes"]]
 
     # 第一次采纳成功，生成 V2
-    client.post(f"/api/projects/{pid}/apply",
-                json={"run_id": cmp["run_id"], "request_id": "r2", "decisions": decisions},
-                headers=auth(alice))
+    client.post(
+        f"/api/projects/{pid}/apply",
+        json={"run_id": cmp["run_id"], "request_id": "r2", "decisions": decisions},
+        headers=auth(alice),
+    )
 
     # 再用同一个（已过期的）run_id 采纳，应被拒绝
-    r = client.post(f"/api/projects/{pid}/apply",
-                    json={"run_id": cmp["run_id"], "request_id": "r3", "decisions": decisions},
-                    headers=auth(alice))
+    r = client.post(
+        f"/api/projects/{pid}/apply",
+        json={"run_id": cmp["run_id"], "request_id": "r3", "decisions": decisions},
+        headers=auth(alice),
+    )
     assert r.status_code == 409

@@ -1,67 +1,88 @@
-# 部署说明
+# 部署与升级
 
-本文说明如何把「AI 项目需求管家」部署到面向多客户试用的环境。
+当前默认用于单机或小范围试用，尚无公开在线地址。以下文件已准备好部署步骤，运行命令不等于已经发布。
 
-## 1. 技术栈与持久化要求
+## Docker 部署
 
-- 后端：Python + FastAPI + SQLite（当前）。
-- 前端：纯静态 HTML/CSS/JS，由 FastAPI 直接托管。
-- 数据：SQLite 单文件 `app.db`。
-
-**关键约束**：SQLite 依赖「有持久磁盘」的环境。若托管平台每次部署会重置文件系统（无持久磁盘），数据会丢失，必须换用托管数据库（PostgreSQL / MySQL）并改造 `backend/main.py` 的存储层。选择环境前请先确认它有持久卷（persistent volume）。
-
-## 2. 单机部署（VPS / 自己的服务器）
-
-1. 安装 Python 3.10+ 和依赖。
-2. 复制代码，创建 `.env`（见 `.env.example`）填模型密钥。
-3. 用生产服务器运行（不要用开发模式裸跑）：
+复制 `.env.example` 为 `.env`，由部署管理员填写真实智能服务配置。留空时仍可使用材料归档、手动需求维护和版本确认。默认正式业务模式，不会生成内置示例结果。使用带 Compose 的 Docker：
 
 ```bash
-pip install fastapi "uvicorn[standard]" pydantic
-uvicorn backend.main:app --host 0.0.0.0 --port 8000 --workers 1
+docker compose up --build -d
 ```
 
-> 注意：当前实现用单个 SQLite 文件 + 内存连接，**必须 `--workers 1`**。多进程会各开一个写连接导致冲突。要横向扩展需先换成 PostgreSQL。
+服务绑定本机 8000 端口，数据库与备份保存在 `app-data` 持久卷。容器使用非 root 用户；需要开放公网时在前面配置 Caddy/Nginx HTTPS，反向代理到 127.0.0.1:8000。不要删除持久卷。
 
-4. 用反向代理（Nginx / Caddy）提供 HTTPS，并转发到 8000 端口。
-
-## 3. 托管平台（PaaS）
-
-以下平台支持持久磁盘 + 免费额度，适合小范围试用。部署需要你本人提供对应平台的账户和登录授权：
-
-| 平台 | 持久存储 | 说明 |
-| --- | --- | --- |
-| Railway | 有持久卷 | 需挂载 Volume 到 `app.db` 所在目录 |
-| Fly.io | 有 Volume | `fly volumes create` |
-| Render | 有 Disk | 免费层 Disk 在闲置后可能被回收，需注意 |
-| 自建 VPS | 有 | 见第 2 节 |
-
-部署要点（以 Railway 为例）：
-1. 关联仓库，设置启动命令 `uvicorn backend.main:app --host 0.0.0.0 --port $PORT --workers 1`。
-2. 挂载持久卷到 `/app`（或 `DB_PATH` 指向的目录）。
-3. 在平台的环境变量里填 `LLM_API_KEY` / `LLM_BASE_URL` / `LLM_MODEL`（不要提交到仓库）。
-4. 设置 `DB_PATH=/app/app.db`（指向持久卷）。
-
-## 4. 安全配置
-
-- 生产环境建议通过反向代理设置请求体大小上限，与后端 `MAX_SOURCE_LENGTH` 一致。
-- `SESSION_TTL_HOURS`、`RATE_LIMIT_MAX` 等通过环境变量调整。
-- 模型密钥只放环境变量，绝不进源码或前端。
-
-## 5. 数据备份与恢复
+单独运行镜像：
 
 ```bash
-# 备份（可在服务运行时执行）
+docker build -t ai-project-manager .
+docker run -d --name ai-project-manager --env-file .env -p 127.0.0.1:8000:8000 -v ai-requirements-data:/data ai-project-manager
+```
+
+Docker 配置尚需在实际 Docker 主机验证。本地回归使用 Python + Uvicorn，不等于容器运行验证。
+
+## Python 部署
+
+推荐 Python 3.12，建立虚拟环境并安装 `requirements-lock.txt`，由系统服务管理：
+
+```bash
+python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000 --workers 1
+```
+
+使用独立请求连接和事务，但 SQLite 仍会串行写入。当前建议单实例、单 worker；多实例和高并发应先迁移到服务型数据库。不要把有数据的磁盘目录整体挂载到代码目录；将 `DB_PATH` 指向专门的数据卷，例如 `/data/app.db`。
+
+## 配置
+
+- 所有配置支持根目录 `.env` 和环境变量，环境变量优先。
+- `DB_PATH`：持久磁盘路径；`BACKUP_DIR`：备份目录。
+- `LLM_API_KEY / LLM_BASE_URL / LLM_MODEL`：真实模型。
+- `LLM_RESPONSE_FORMAT`：默认 prompt；支持 JSON Schema 的服务可显式设置 json_schema。
+- `LLM_INPUT_PRICE_PER_MILLION / LLM_OUTPUT_PRICE_PER_MILLION / LLM_CURRENCY`：自行按实际定价填写；不内置易过期的价格。
+- `RATE_LIMIT_MAX`：每用户每分钟分析请求；包含成员与失败调用。
+- `AUTH_RATE_LIMIT_MAX`：每来源 IP 每分钟注册/登录次数。
+- `MAX_BODY_BYTES`：请求体字节上限，默认 2 MB。反向代理也应设相应上限。
+- `CORS_ORIGINS`：默认空、同域使用；跨域时填写明确来源，不使用通配符。
+- `ENABLE_DEMO_MODE`：默认 false；只在独立培训环境显式设为 true。培训入口为 `/?training=1`，不展示在正式登录页上。不要在正式业务环境启用固定示例替代分析。
+
+### 首次接入智能服务
+
+配置文件放在项目根目录，与 `.env.example` 同级，文件名必须是 `.env`，不能是 Windows 记事本自动追加扩展名后的 `.env.txt`。可在资源管理器中开启“文件扩展名”核对。
+
+1. 将 `.env.example` 复制为 `.env`；已有配置时直接编辑，不要覆盖。
+2. 填写 `LLM_API_KEY`（API 密钥，不是网站登录密码）、`LLM_BASE_URL` 和 `LLM_MODEL`。
+3. 保存文件后重启 Uvicorn 进程；Compose 部署执行 `docker compose up -d --force-recreate`，让容器重新加载环境变量。
+4. 注册自己的账号，新建项目，用脱敏材料测试智能整理并人工核查原文引用。
+
+`/api/health` 成功只表示应用启动，不代表模型已接通。提示“智能整理暂不可用，材料已保存”时，先检查三个必填配置、文件名和是否重启；其他调用失败还需检查服务商权限、额度、网络和输出校验。普通用户不需要填写模型参数。
+
+`.env`、本地配置变体、数据库和备份不会随源码提交；不要把密钥写入 `.env.example`。公网部署通过平台的环境变量或密钥管理功能注入配置，升级代码时保留现有配置与数据。
+
+普通业务页面不展示模型名称、密钥配置、额度或 token 计量；服务接入由管理员在部署配置中维护。健康接口仅返回应用可用性与版本，不返回模型配置。
+
+代理设置应只信任真实反向代理传来的来源 IP，避免伪造转发头绕过认证限流。TLS、持久磁盘和实际模型额度由部署环境提供。
+
+## 账号与业务数据
+
+系统不提供默认管理员、默认密码或预置业务账号。首次访问登录页点击“创建工作空间账号”，设置用户名与至少 6 位密码；成员协作时，其他成员先注册，再由项目所有者添加。
+
+账号、会话和项目记录存储在部署实例的数据库中，不会上传到 GitHub，也不会因拉取源码自动出现在其他机器。更换实例需迁移数据库；目前没有找回密码、企业 SSO 或成员移除功能。
+
+## 备份、迁移与回退
+
+第一次用新代码启动前，先用旧版本的备份脚本备份旧库，再停止旧服务。新代码启动时自动检查 `PRAGMA user_version`，升级在事务中完成。旧版本数据及其快照保留，旧的无权限域幂等记录归档为 `idempotency_legacy`。存在孤立关联记录时迁移会报错并回滚，先修复数据后再启动。
+
+```bash
 python backend/backup.py backup
-
-# 恢复（建议先停止服务）
-python backend/backup.py restore backups/app_20260908_120000.db
+# 恢复前停止服务：
+python backend/backup.py restore backups/你的备份.db
 ```
 
-建议部署后配置定时备份（cron / 平台计划任务）。
+脚本读取同一套 `DB_PATH` 配置。默认备份目录为数据库目录中的 `backups/`。备份使用 SQLite online backup，包含 WAL 中已提交的数据；恢复会先校验备份完整性，并给当前库生成带时间戳的安全备份。
 
-## 6. 待办事项
+容器中备份：
 
-- [ ] 托管平台账户与真实上线（需选择平台并按第 3 节操作）
-- [ ] 多进程/高并发：当前锁单 worker；量大后需迁移 PostgreSQL
-- [ ] 数据库加密 / 备份加密：视合规要求决定
+```bash
+docker compose exec app python backend/backup.py backup
+```
+
+不要把还原操作作为健康检查。回退旧代码时应同时恢复升级前备份，避免旧代码误用新的表结构。备份仍需另存到不同设备或服务，按真实业务需求制定保留与恢复演练计划。

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """项目级访问控制的测试：数据隔离、成员协作。"""
+
 from conftest import auth
 
 
@@ -15,11 +16,16 @@ def test_cross_user_cannot_access(client, alice, bob):
 
     # 读取、写入、确认、导出全部应 404
     assert client.get(f"/api/projects/{pid}", headers=auth(bob)).status_code == 404
-    assert client.post(f"/api/projects/{pid}/sources",
-                       json={"text": "bob 试图写入", "label": "x"},
-                       headers=auth(bob)).status_code == 404
-    assert client.post(f"/api/projects/{pid}/confirm",
-                       json={"request_id": "x"}, headers=auth(bob)).status_code == 404
+    assert (
+        client.post(
+            f"/api/projects/{pid}/sources", json={"text": "bob 试图写入", "label": "x"}, headers=auth(bob)
+        ).status_code
+        == 404
+    )
+    assert (
+        client.post(f"/api/projects/{pid}/confirm", json={"request_id": "x"}, headers=auth(bob)).status_code
+        == 404
+    )
     assert client.get(f"/api/projects/{pid}/export", headers=auth(bob)).status_code == 404
     assert client.get(f"/api/projects/{pid}/versions/whatever", headers=auth(bob)).status_code == 404
 

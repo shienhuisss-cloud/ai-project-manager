@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """密码哈希和会话令牌。只用标准库，不引额外依赖。"""
+
 import hashlib
 import hmac
 import secrets

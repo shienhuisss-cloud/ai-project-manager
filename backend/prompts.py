@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
 """需求提取和变更比较两份提示词。PROMPT_VERSION 会记进 analysis_run，方便追踪用了哪版。"""
+
 import json
 
-PROMPT_VERSION = "v1.0"
+from .schemas import ExtractResult, CompareResult, output_schema
+
+PROMPT_VERSION = "v1.1"
 
 # 需求提取提示词
 EXTRACT_SYSTEM = """你负责把项目沟通整理为可审核的需求候选。
@@ -48,16 +51,20 @@ COMPARE_SYSTEM = """你负责比较已确认需求版本与新沟通，输出供
 - 已有关联项只能引用 baseline 中真实的 requirement_id。
 - 新材料未提及某项不构成删除依据。
 - "以后考虑"不能作为立即执行的新范围。
-- 新要求与原来的排除项冲突时，指出冲突并交给人工决定。
+- 新要求推翻原来的排除项时，使用 modified 关联原需求，并将 intent 改为 requested；指出冲突供人工审核。\n- modified/clarification 每条最多关联一条需求；added 不关联已有需求。\n- clarification 只用于明确补全信息；仍未确定的内容用 uncertain 并给出 questions。\n- intent 表达修改后的意图；resolved_questions 仅列出本次有证据明确回答的旧问题。\n- unchanged 无需创建需求或待澄清问题；没有变化时 changes 可为空。
 - 区分已声明的信息与建议；不得自行给出已约定的费用、工期或客户确认结论。
 - 只生成变化建议及解释，不修改 baseline，不自行采纳。
+- questions 只包含尚未回答的业务信息，不包含“是否采纳本建议”这样的审核操作问题。
+- stated_acceptance_criteria 为 null 时保留原验收条件；空数组表示明确清除，非空数组表示替换为新条件。
 
 按后端提供的 JSON Schema 返回 changes。
 每项包含 kind、related_requirement_ids、proposed_after、reason、evidence 和 questions。"""
 
 
 def build_extract_messages(project_context: dict, sources: list) -> list:
-    system = EXTRACT_SYSTEM
+    system = (
+        EXTRACT_SYSTEM + "\nJSON Schema:\n" + json.dumps(output_schema(ExtractResult), ensure_ascii=False)
+    )
     user = json.dumps(
         {"project_context": project_context, "sources": sources},
         ensure_ascii=False,
@@ -69,7 +76,9 @@ def build_extract_messages(project_context: dict, sources: list) -> list:
 
 
 def build_compare_messages(baseline: dict, new_sources: list) -> list:
-    system = COMPARE_SYSTEM
+    system = (
+        COMPARE_SYSTEM + "\nJSON Schema:\n" + json.dumps(output_schema(CompareResult), ensure_ascii=False)
+    )
     user = json.dumps(
         {"baseline": baseline, "new_sources": new_sources},
         ensure_ascii=False,
