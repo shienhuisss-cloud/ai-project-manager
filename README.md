@@ -121,7 +121,7 @@ python -m pytest tests/e2e -q
 # RUN_E2E=1 python -m pytest tests/e2e -q
 ```
 
-已安装 Edge 时可设置 `E2E_CHANNEL=msedge`。截图默认输出到 `.artifacts/`；`UPDATE_SCREENSHOTS=1` 更新本文中的实际界面截图。GitHub Actions 配置在推送后运行相同检查；尚未在远端验证。
+已安装 Edge 时可设置 `E2E_CHANNEL=msedge`。截图默认输出到 `.artifacts/`；`UPDATE_SCREENSHOTS=1` 更新本文中的实际界面截图。GitHub Actions 在推送后自动运行检查；0.3.0 的后端回归、代码检查、参考答案校验与 Chromium 浏览器流程已在 Ubuntu 上全部通过，见 [远端验证记录](https://github.com/shienhuisss-cloud/ai-project-manager/actions/runs/38880940299)。
 
 `evaluation/cases.json` 包含 30 组合成种子案例，默认评测命令只检查参考答案格式和引文。**真实模型召回率、采纳率、语义准确率仍待测量**；详见 [EVALUATION.md](EVALUATION.md)。
 

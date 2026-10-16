@@ -1,4 +1,4 @@
-# 本地验证记录
+# 验证记录
 
 日期：2026-10-16（Asia/Shanghai）。环境：Windows、Python 3.12.7、项目独立虚拟环境、固定版本依赖。
 
@@ -13,6 +13,7 @@
 | 实际界面截图 | 登录、项目管理、概览、沟通材料、需求审核、版本差异、手机工作空间 |
 | 发布前完整回归 | 53 项通过（50 项后端及相关测试 + 3 项浏览器测试） |
 | 源码发布敏感文件检查 | 本地配置、数据库、备份及运行产物已排除；可发布文本未发现常见高置信密钥格式 |
+| GitHub Actions 远端回归 | Ubuntu 上代码检查、50 项后端及相关测试、30 组参考答案校验、3 项 Chromium 浏览器测试全部通过 |
 
 浏览器覆盖：注册后进入正式工作空间；项目搜索与真实统计；编辑和删除需求后确认；只提交勾选的新材料；通过本地模型 HTTP 协议替身验证智能整理调用；变更采纳后生成 V2；差异展示；Markdown 下载；手机端独立完成手动需求维护、从基线修订并确认 V2；刷新恢复项目分区；过期会话回到登录。
 
@@ -24,6 +25,8 @@
 
 本次发布同步 README、部署、产品决策、演示、评测与更新记录。源码发布不包含账号、项目数据库或真实密钥，也不等于已部署公网服务。实际提交和远端检查记录见 [GitHub 提交历史](https://github.com/shienhuisss-cloud/ai-project-manager/commits/main/) 与 [Actions](https://github.com/shienhuisss-cloud/ai-project-manager/actions)。
 
-未验证：真实模型服务效果与费用、公开托管、Docker 主机实际运行、GitHub Actions 远端执行。当前机器没有可用 Docker 命令；容器配置仍需在部署主机验证。没有为这些事项编造通过结果或业务数据。
+2026-10-16 已确认源码与文档发布至 GitHub main，提交 `5abfd0f101340840528452a50c95d6b8e62203d8`；对应 [Actions 运行](https://github.com/shienhuisss-cloud/ai-project-manager/actions/runs/38880940299) 结果为 success。远端使用 Python 3.12、Node.js 22 和无头 Chromium；模型 HTTP 协议替身仍只用于业务流程回归，不替代真实模型效果评测。
+
+未验证：真实模型服务效果与费用、公开托管、Docker 主机实际运行。当前机器没有可用 Docker 命令；容器配置仍需在部署主机验证。没有为这些事项编造通过结果或业务数据。
 
 复跑步骤见 README。Windows 若系统 pytest 临时目录访问受限，可将 --basetemp 指向项目内新建的独立临时目录；不要指向包含需要保留文件的目录，因为 pytest 会管理该目录。
