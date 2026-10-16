@@ -4,7 +4,7 @@
 
 ## Docker 部署
 
-复制 `.env.example` 为 `.env`，由部署管理员填写真实智能服务配置。留空时仍可使用材料归档、手动需求维护和版本确认。默认正式业务模式，不会生成内置示例结果。使用带 Compose 的 Docker：
+复制 `.env.example` 为 `.env`，由部署管理员填写模型服务配置。默认正式业务模式，智能整理与变更比较通过后台调用所配置的模型服务。使用带 Compose 的 Docker：
 
 ```bash
 docker compose up --build -d
@@ -35,7 +35,7 @@ python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000 --workers 1
 
 - 所有配置支持根目录 `.env` 和环境变量，环境变量优先。
 - `DB_PATH`：持久磁盘路径；`BACKUP_DIR`：备份目录。
-- `LLM_API_KEY / LLM_BASE_URL / LLM_MODEL`：真实模型。
+- `LLM_API_KEY / LLM_BASE_URL / LLM_MODEL`：模型服务的 API 密钥、兼容接口地址与模型标识，均为智能分析的必要配置。
 - `LLM_RESPONSE_FORMAT`：默认 prompt；支持 JSON Schema 的服务可显式设置 json_schema。
 - `LLM_INPUT_PRICE_PER_MILLION / LLM_OUTPUT_PRICE_PER_MILLION / LLM_CURRENCY`：自行按实际定价填写；不内置易过期的价格。
 - `RATE_LIMIT_MAX`：每用户每分钟分析请求；包含成员与失败调用。
@@ -53,7 +53,11 @@ python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000 --workers 1
 3. 保存文件后重启 Uvicorn 进程；Compose 部署执行 `docker compose up -d --force-recreate`，让容器重新加载环境变量。
 4. 注册自己的账号，新建项目，用脱敏材料测试智能整理并人工核查原文引用。
 
-`/api/health` 成功只表示应用启动，不代表模型已接通。提示“智能整理暂不可用，材料已保存”时，先检查三个必填配置、文件名和是否重启；其他调用失败还需检查服务商权限、额度、网络和输出校验。普通用户不需要填写模型参数。
+### 接入验收与运维
+
+`/api/health` 用于检查应用启动状态。模型接入验收应另外使用一条脱敏材料执行智能整理，检查需求草稿及逐字引文，再测试新沟通与正式版本的变更比较。
+
+排查调用问题时依次核对配置文件名、三个必填参数、进程是否重新加载配置、服务商密钥权限与额度、网络连接，以及输出校验结果。材料归档与分析分开保存，便于重试和人工核查。不要把密钥、服务商完整错误响应或客户原文放进公开日志与 issue。
 
 `.env`、本地配置变体、数据库和备份不会随源码提交；不要把密钥写入 `.env.example`。公网部署通过平台的环境变量或密钥管理功能注入配置，升级代码时保留现有配置与数据。
 
